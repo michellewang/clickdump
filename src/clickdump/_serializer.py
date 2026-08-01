@@ -6,7 +6,7 @@ import json
 import platform
 from dataclasses import MISSING, fields, is_dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import click
 
@@ -125,7 +125,7 @@ def _extract_param_info(param: click.Parameter) -> ActionInfo:
     return info
 
 
-def _create_help_action(cmd: click.Command) -> Optional[ActionInfo]:
+def _create_help_action(cmd: click.Command) -> ActionInfo | None:
     """Create a synthetic HELP action for auto-generated --help."""
     if not getattr(cmd, "add_help_option", True):
         return None
@@ -149,8 +149,8 @@ def _extract_command_actions(cmd: click.Command, include_hidden: bool = True) ->
     Returns:
         Tuple of (actions_list, argument_groups_list, mutex_groups_list)
     """
-    actions: List[ActionInfo] = []
-    action_to_dest: Dict[int, str] = {}
+    actions: list[ActionInfo] = []
+    action_to_dest: dict[int, str] = {}
 
     params = list(cmd.params)
 
@@ -171,7 +171,7 @@ def _extract_command_actions(cmd: click.Command, include_hidden: bool = True) ->
 
 
 def _create_parser_info(
-    cmd: click.Command, *, prog_override: Optional[str] = None
+    cmd: click.Command, *, prog_override: str | None = None
 ) -> ParserInfo:
     """Create base ParserInfo from a Click Command."""
     info = ParserInfo(
@@ -206,7 +206,7 @@ def serialize_command(
     cmd: click.Command,
     include_hidden: bool = True,
     *,
-    prog_override: Optional[str] = None,
+    prog_override: str | None = None,
 ) -> ParserInfo:
     """Serialize a click Command to ParserInfo."""
     info = _create_parser_info(cmd, prog_override=prog_override)
@@ -219,7 +219,7 @@ def serialize_group(
     group: click.Group,
     include_hidden: bool = True,
     *,
-    prog_override: Optional[str] = None,
+    prog_override: str | None = None,
 ) -> ParserInfo:
     """Serialize a click Group to ParserInfo.
 
@@ -243,10 +243,10 @@ def _build_subparsers_action(
     group: click.Group, include_hidden: bool = True
 ) -> ActionInfo:
     """Build a synthetic PARSERS action for a Group's subcommands."""
-    subparsers: Dict[str, Any] = {}
-    subparsers_aliases: Dict[str, List[str]] = {}
-    serialized_parsers: Dict[int, str] = {}
-    parser_to_names: Dict[int, List[str]] = {}
+    subparsers: dict[str, Any] = {}
+    subparsers_aliases: dict[str, list[str]] = {}
+    serialized_parsers: dict[int, str] = {}
+    parser_to_names: dict[int, list[str]] = {}
 
     for name, cmd in group.commands.items():
         if cmd.name is None:
@@ -301,7 +301,7 @@ def _get_clickdump_version() -> str:
         return "unknown"
 
 
-def _get_environment_info() -> Dict[str, str]:
+def _get_environment_info() -> dict[str, str]:
     return {
         "python_version": platform.python_version(),
         "python_implementation": platform.python_implementation(),
@@ -313,20 +313,17 @@ def _get_environment_info() -> Dict[str, str]:
 
 
 def _extract_help_option_names(cmd: click.Command) -> None:
-    """Populate HELP_OPTION_NAMES if a context is available, otherwise use defaults."""
+    """Populate HELP_OPTION_NAMES with the command's actual help option names."""
     global _HELP_OPTION_NAMES
-    try:
-        ctx = click.Context(cmd)
-        _HELP_OPTION_NAMES = list(ctx.help_option_names)
-    except Exception:
-        pass
+    ctx = cmd.make_context(cmd.name or "", [], resilient_parsing=True)
+    _HELP_OPTION_NAMES = list(ctx.help_option_names)
 
 
 def _serialize(
     cmd: click.Command,
     include_hidden: bool = True,
     *,
-    prog_override: Optional[str] = None,
+    prog_override: str | None = None,
 ) -> ParserInfo:
     """Serialize any click Command or Group."""
     _extract_help_option_names(cmd)
@@ -395,15 +392,13 @@ class _Encoder(json.JSONEncoder):
         return serialize_value(o)
 
 
-def _find_command_path(
-    root: click.Command, target: click.Command
-) -> Optional[List[str]]:
+def _find_command_path(root: click.Command, target: click.Command) -> list[str] | None:
     """Search root's command tree for target, returning the full name path.
 
     Returns list of names from root to target (e.g. ["cli", "config", "get"]),
     or None if target is not found under root.
     """
-    stack: List[tuple] = [(root, [getattr(root, "name", "")])]
+    stack: list[tuple] = [(root, [getattr(root, "name", "")])]
 
     while stack:
         node, path = stack.pop()
@@ -412,7 +407,7 @@ def _find_command_path(
             return path
 
         commands = getattr(node, "commands", {})
-        for name, cmd in commands.items():
+        for cmd in commands.values():
             if cmd.name is None:
                 continue
             stack.append((cmd, [*path, cmd.name]))
@@ -425,9 +420,9 @@ def dump(
     *,
     include_env: bool = True,
     include_hidden: bool = True,
-    parent: Optional[click.Command] = None,
-    prog: Optional[str] = None,
-) -> Dict[str, Any]:
+    parent: click.Command | None = None,
+    prog: str | None = None,
+) -> dict[str, Any]:
     """Serialize a click Command or Group to a dictionary.
 
     Args:
@@ -450,9 +445,9 @@ def dump(
                 path[0] = prog
             prog = " ".join(path)
     info = _serialize(cmd, include_hidden=include_hidden, prog_override=prog)
-    data: Dict[str, Any] = json.loads(json.dumps(info, cls=_Encoder))
+    data: dict[str, Any] = json.loads(json.dumps(info, cls=_Encoder))
 
-    result: Dict[str, Any] = {"$schema": SCHEMA_URL_V1}
+    result: dict[str, Any] = {"$schema": SCHEMA_URL_V1}
 
     if include_env:
         result["$env"] = _get_environment_info()
@@ -466,8 +461,8 @@ def dumps(
     *,
     include_env: bool = True,
     include_hidden: bool = True,
-    parent: Optional[click.Command] = None,
-    prog: Optional[str] = None,
+    parent: click.Command | None = None,
+    prog: str | None = None,
     **json_kwargs: Any,
 ) -> str:
     """Serialize a click Command or Group to a JSON string.

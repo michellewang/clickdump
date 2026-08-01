@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 
 class ActionType(str, Enum):
@@ -25,7 +25,7 @@ class ActionType(str, Enum):
     UNKNOWN = "unknown"
 
     @classmethod
-    def from_string(cls, value: str) -> "ActionType":
+    def from_string(cls, value: str) -> ActionType:
         try:
             return cls(value)
         except ValueError:
@@ -37,7 +37,7 @@ class TypeInfo:
     """Type converter information."""
 
     name: str
-    module: Optional[str] = None
+    module: str | None = None
     builtin: bool = False
     serializable: bool = True
 
@@ -48,42 +48,42 @@ class FileTypeInfo:
 
     mode: str = "r"
     bufsize: int = -1
-    encoding: Optional[str] = None
-    errors: Optional[str] = None
+    encoding: str | None = None
+    errors: str | None = None
 
 
 @dataclass
 class ActionInfo:
     """Serialized Click Parameter (Option or Argument)."""
 
-    option_strings: List[str]
+    option_strings: list[str]
     dest: str
     action_type: ActionType
-    nargs: Union[str, int, None] = None
+    nargs: str | int | None = None
     const: Any = None
     default: Any = None
-    type_info: Optional[TypeInfo] = None
-    file_type_info: Optional[FileTypeInfo] = None
-    choices: Optional[List[Any]] = None
+    type_info: TypeInfo | None = None
+    file_type_info: FileTypeInfo | None = None
+    choices: list[Any] | None = None
     required: bool = False
-    help: Optional[str] = None
-    metavar: Union[str, Tuple[str, ...], None] = None
+    help: str | None = None
+    metavar: str | tuple[str, ...] | None = None
     deprecated: bool = False
-    version: Optional[str] = None
-    subparsers: Optional[Dict[str, "ParserInfo"]] = None
-    subparsers_title: Optional[str] = None
-    subparsers_description: Optional[str] = None
-    subparsers_dest: Optional[str] = None
+    version: str | None = None
+    subparsers: dict[str, ParserInfo] | None = None
+    subparsers_title: str | None = None
+    subparsers_description: str | None = None
+    subparsers_dest: str | None = None
     subparsers_required: bool = False
-    subparsers_aliases: Optional[Dict[str, List[str]]] = None
-    custom_action_class: Optional[str] = None
+    subparsers_aliases: dict[str, list[str]] | None = None
+    custom_action_class: str | None = None
 
     # Click-specific extensions
     hidden: bool = False
-    show_default: Optional[Union[bool, str]] = None
+    show_default: bool | str | None = None
     show_envvar: bool = False
-    prompt: Optional[Union[bool, str]] = None
-    envvar: Optional[Union[str, List[str]]] = None
+    prompt: bool | str | None = None
+    envvar: str | list[str] | None = None
     is_eager: bool = False
     expose_value: bool = True
     count: bool = False
@@ -105,54 +105,54 @@ class MutualExclusionGroup:
     """Mutually exclusive argument group."""
 
     required: bool
-    actions: List[str]
+    actions: list[str]
 
 
 @dataclass
 class ArgumentGroup:
     """Argument group for help organization."""
 
-    title: Optional[str]
-    description: Optional[str]
-    actions: List[str]
+    title: str | None
+    description: str | None
+    actions: list[str]
 
 
 @dataclass
 class ParserInfo:
     """Complete serialized Click Command or Group."""
 
-    prog: Optional[str] = None
-    description: Optional[str] = None
-    epilog: Optional[str] = None
-    usage: Optional[str] = None
+    prog: str | None = None
+    description: str | None = None
+    epilog: str | None = None
+    usage: str | None = None
     add_help: bool = True
     allow_abbrev: bool = True
-    formatter_class: Optional[str] = None
+    formatter_class: str | None = None
     prefix_chars: str = "-"
-    fromfile_prefix_chars: Optional[str] = None
+    fromfile_prefix_chars: str | None = None
     argument_default: Any = None
     conflict_handler: str = "error"
     exit_on_error: bool = True
     suggest_on_error: bool = False
     color: bool = True
 
-    actions: List[ActionInfo] = field(default_factory=list)
-    argument_groups: List[ArgumentGroup] = field(default_factory=list)
-    mutually_exclusive_groups: List[MutualExclusionGroup] = field(default_factory=list)
+    actions: list[ActionInfo] = field(default_factory=list)
+    argument_groups: list[ArgumentGroup] = field(default_factory=list)
+    mutually_exclusive_groups: list[MutualExclusionGroup] = field(default_factory=list)
 
     # Click-specific extensions
-    short_help: Optional[str] = None
+    short_help: str | None = None
     hidden: bool = False
     deprecated: bool = False
     no_args_is_help: bool = False
     invoke_without_command: bool = False
     chain: bool = False
-    subcommand_metavar: Optional[str] = None
+    subcommand_metavar: str | None = None
     allow_extra_args: bool = False
     allow_interspersed_args: bool = True
     ignore_unknown_options: bool = False
 
-    def get_action_by_dest(self, dest: str) -> Optional[ActionInfo]:
+    def get_action_by_dest(self, dest: str) -> ActionInfo | None:
         for action in self.actions:
             if action.dest == dest:
                 return action
