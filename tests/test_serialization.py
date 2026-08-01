@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import click
+from factories import make_command, make_group
 
 import clickdump
 
@@ -206,24 +207,19 @@ class TestEnvironmentInfo:
 
 
 class TestEdgeCases:
-    def test_command_with_no_params(self):
-        @click.command()
-        def simple():
-            """Simple command."""
-
-        result = clickdump.dump(simple)
-        assert result["prog"] == "simple"
+    def test_command_with_no_params(self, empty_command):
+        result = clickdump.dump(empty_command)
+        assert result["prog"] == "cli"
         assert len(result["actions"]) == 1  # just help
 
     def test_command_with_multiple_options(self):
-        @click.command()
-        @click.option("--a", multiple=True, type=int)
-        @click.option("--b", is_flag=True)
-        @click.option("--c", flag_value="custom")
-        def cli(a, b, c):
-            """Multi options."""
-
-        result = clickdump.dump(cli)
+        result = clickdump.dump(
+            make_command(
+                click.Option(["--a"], multiple=True, type=int),
+                click.Option(["--b"], is_flag=True),
+                click.Option(["--c"], flag_value="custom"),
+            )
+        )
         actions = {a["dest"]: a for a in result["actions"]}
         assert actions["a"]["action_type"] == "append"
         assert actions["a"]["multiple"] is True
@@ -276,15 +272,11 @@ class TestProgramName:
         result = clickdump.dump(get, parent=nested_group, prog="mycli")
         assert result["prog"] == "mycli config get"
 
-    def test_cmd_not_found_falls_back(self, nested_group):
+    def test_cmd_not_found_falls_back(self, nested_group, empty_command):
         config = nested_group.commands["config"]
 
-        @click.command()
-        def standalone():
-            pass
-
-        # standalone is not under config, so parent lookup fails -> falls back to prog
-        result = clickdump.dump(standalone, parent=config, prog="fallback")
+        # empty_command is not under config, so parent lookup fails -> falls back to prog
+        result = clickdump.dump(empty_command, parent=config, prog="fallback")
         assert result["prog"] == "fallback"
 
     def test_prog_overrides_root_when_parent_found(self, nested_group):
@@ -312,6 +304,20 @@ class TestAddHelpOption:
         assert result["add_help"] is False
 
 
+class TestHelpOptionNames:
+    def test_custom_help_option_names(self):
+        result = clickdump.dump(
+            make_command(context_settings={"help_option_names": ["-h", "--help"]})
+        )
+        help_actions = [a for a in result["actions"] if a["action_type"] == "help"]
+        assert help_actions[0]["option_strings"] == ["-h", "--help"]
+
+    def test_required_positional_arg_serializes(self):
+        result = clickdump.dump(make_command(click.Argument(["src"])))
+        actions = {a["dest"]: a for a in result["actions"]}
+        assert actions["src"]["required"] is True
+
+
 class TestCommandDeprecated:
     def test_deprecated(self, deprecated_command):
         result = clickdump.dump(deprecated_command)
@@ -319,20 +325,20 @@ class TestCommandDeprecated:
 
 
 class TestGroupFlags:
-    def test_invoke_without_command(self, invoke_without_command_group):
-        result = clickdump.dump(invoke_without_command_group)
+    def test_invoke_without_command(self):
+        result = clickdump.dump(make_group("sub", invoke_without_command=True))
         assert result["invoke_without_command"] is True
 
     def test_chain(self, chain_group):
         result = clickdump.dump(chain_group)
         assert result["chain"] is True
 
-    def test_subcommand_metavar(self, metavar_group):
-        result = clickdump.dump(metavar_group)
+    def test_subcommand_metavar(self):
+        result = clickdump.dump(make_group("sub", subcommand_metavar="COMMAND"))
         assert result["subcommand_metavar"] == "COMMAND"
 
-    def test_group_no_subcommands(self, empty_group):
-        result = clickdump.dump(empty_group)
+    def test_group_no_subcommands(self):
+        result = clickdump.dump(make_group())
         parsers = [a for a in result["actions"] if a["action_type"] == "parsers"]
         assert len(parsers) == 0
 
@@ -343,28 +349,40 @@ class TestOptionFields:
         name_action = next(a for a in result["actions"] if a["dest"] == "name")
         assert name_action["prompt"] == "Name"
 
-    def test_prompt_string(self, command_prompt_string):
-        result = clickdump.dump(command_prompt_string)
+    def test_prompt_string(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--name"], prompt="Enter name: "))
+        )
         name_action = next(a for a in result["actions"] if a["dest"] == "name")
         assert name_action["prompt"] == "Enter name: "
 
-    def test_show_default(self, command_show_default):
-        result = clickdump.dump(command_show_default)
+    def test_show_default(self):
+        result = clickdump.dump(
+            make_command(
+                click.Option(["--output"], default="out.txt", show_default=True)
+            )
+        )
         output_action = next(a for a in result["actions"] if a["dest"] == "output")
         assert output_action["show_default"] is True
 
-    def test_show_envvar(self, command_show_envvar):
-        result = clickdump.dump(command_show_envvar)
+    def test_show_envvar(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--host"], envvar="HOST", show_envvar=True))
+        )
         host_action = next(a for a in result["actions"] if a["dest"] == "host")
         assert host_action["show_envvar"] is True
 
-    def test_is_eager(self, command_is_eager):
-        result = clickdump.dump(command_is_eager)
+    def test_is_eager(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--verbose"], is_eager=True))
+        )
         verbose_action = next(a for a in result["actions"] if a["dest"] == "verbose")
         assert verbose_action["is_eager"] is True
 
-    def test_expose_value_false(self, command_expose_false):
-        result = clickdump.dump(command_expose_false)
+    def test_expose_value_false(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--secret"], expose_value=False))
+        )
         secret_action = next(a for a in result["actions"] if a["dest"] == "secret")
         assert secret_action["expose_value"] is False
 
@@ -373,20 +391,29 @@ class TestOptionFields:
         token_action = next(a for a in result["actions"] if a["dest"] == "token")
         assert token_action["required"] is True
 
-    def test_metavar(self, command_metavar):
-        result = clickdump.dump(command_metavar)
+    def test_metavar(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--config"], metavar="FILE"))
+        )
         config_action = next(a for a in result["actions"] if a["dest"] == "config")
         assert config_action["metavar"] == "FILE"
 
-    def test_envvar_list(self, command_envvar_list):
-        result = clickdump.dump(command_envvar_list)
+    def test_envvar_list(self):
+        result = clickdump.dump(
+            make_command(click.Option(["--host"], envvar=["HOST", "SERVER_HOST"]))
+        )
         host_action = next(a for a in result["actions"] if a["dest"] == "host")
         assert host_action["envvar"] == ["HOST", "SERVER_HOST"]
 
 
 class TestCommandAliases:
-    def test_aliases(self, group_with_aliases):
-        result = clickdump.dump(group_with_aliases)
+    def test_aliases(self):
+        build_cmd = click.Command("build", help="Build it.")
+        cli = click.Group("cli")
+        cli.add_command(build_cmd, "build")
+        cli.add_command(build_cmd, "compile")
+
+        result = clickdump.dump(cli)
         parsers = next(a for a in result["actions"] if a["action_type"] == "parsers")
         assert "build" in parsers["subparsers"]
         assert "compile" not in parsers["subparsers"]
