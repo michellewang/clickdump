@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        click-version: ["latest", "8.1.8"]
 
     steps:
       - uses: actions/checkout@v7
@@ -25,6 +26,9 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install . --group test
+          if [ "${{ matrix.click-version }}" != "latest" ]; then
+            pip install click==${{ matrix.click-version }}
+          fi
 
       - name: Run tests
         run: pytest
