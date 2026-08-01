@@ -30,13 +30,13 @@ from .models import (
 __version__ = "0.1.0"
 
 __all__ = [
+    "ActionInfo",
+    "ActionType",
+    "ArgumentGroup",
+    "FileTypeInfo",
+    "MutualExclusionGroup",
+    "ParserInfo",
+    "TypeInfo",
     "dump",
     "dumps",
-    "ActionType",
-    "TypeInfo",
-    "FileTypeInfo",
-    "ActionInfo",
-    "MutualExclusionGroup",
-    "ArgumentGroup",
-    "ParserInfo",
 ]

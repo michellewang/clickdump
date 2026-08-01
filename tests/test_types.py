@@ -68,7 +68,7 @@ class TestFile:
         assert file_type_info.mode == "r"
 
     def test_file_custom(self):
-        type_info, file_type_info, _ = type_info_from_param_type(
+        _, file_type_info, _ = type_info_from_param_type(
             click.File(mode="rb", encoding="utf-8")
         )
         assert file_type_info.mode == "rb"

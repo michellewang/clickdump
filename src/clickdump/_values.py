@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import base64
 from enum import Enum
-from typing import Any, Dict, FrozenSet, List, Optional, Set
+from typing import Any
 
 
-def serialize_value(value: Any, _seen: Optional[Set[int]] = None) -> Any:
+def serialize_value(value: Any, _seen: set[int] | None = None) -> Any:
     """Serialize a value for JSON compatibility."""
     if _seen is None:
         _seen = set()
@@ -53,7 +53,7 @@ def serialize_value(value: Any, _seen: Optional[Set[int]] = None) -> Any:
     }
 
 
-def _serialize_sequence(value: Any, seen: Set[int], obj_id: int) -> List[Any]:
+def _serialize_sequence(value: Any, seen: set[int], obj_id: int) -> list[Any]:
     seen.add(obj_id)
     result = [serialize_value(v, seen) for v in value]
     seen.discard(obj_id)
@@ -61,8 +61,8 @@ def _serialize_sequence(value: Any, seen: Set[int], obj_id: int) -> List[Any]:
 
 
 def _serialize_dict(
-    value: Dict[Any, Any], seen: Set[int], obj_id: int
-) -> Dict[str, Any]:
+    value: dict[Any, Any], seen: set[int], obj_id: int
+) -> dict[str, Any]:
     seen.add(obj_id)
     result = {str(k): serialize_value(v, seen) for k, v in value.items()}
     seen.discard(obj_id)
@@ -70,10 +70,10 @@ def _serialize_dict(
 
 
 def _serialize_set(
-    value: Set[Any], seen: Set[int], obj_id: int
-) -> Dict[str, List[Any]]:
+    value: set[Any], seen: set[int], obj_id: int
+) -> dict[str, list[Any]]:
     seen.add(obj_id)
-    result: Dict[str, List[Any]] = {
+    result: dict[str, list[Any]] = {
         "__set__": [serialize_value(v, seen) for v in sorted(value, key=str)]
     }
     seen.discard(obj_id)
@@ -81,17 +81,17 @@ def _serialize_set(
 
 
 def _serialize_frozenset(
-    value: FrozenSet[Any], seen: Set[int], obj_id: int
-) -> Dict[str, List[Any]]:
+    value: frozenset[Any], seen: set[int], obj_id: int
+) -> dict[str, list[Any]]:
     seen.add(obj_id)
-    result: Dict[str, List[Any]] = {
+    result: dict[str, list[Any]] = {
         "__frozenset__": [serialize_value(v, seen) for v in sorted(value, key=str)]
     }
     seen.discard(obj_id)
     return result
 
 
-def _serialize_enum(value: Enum) -> Dict[str, Any]:
+def _serialize_enum(value: Enum) -> dict[str, Any]:
     return {
         "__enum__": True,
         "class": type(value).__name__,
@@ -101,7 +101,7 @@ def _serialize_enum(value: Enum) -> Dict[str, Any]:
     }
 
 
-def _serialize_bytes(value: bytes) -> Dict[str, str]:
+def _serialize_bytes(value: bytes) -> dict[str, str]:
     try:
         return {"__bytes__": value.decode("utf-8")}
     except UnicodeDecodeError:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import click
+
 import clickdump
 
 
@@ -78,7 +79,7 @@ class TestTypes:
     def test_int_type(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        count = [a for a in actions if a["dest"] == "count"][0]
+        count = next(a for a in actions if a["dest"] == "count")
         assert count["type_info"]["name"] == "int"
         assert count["type_info"]["module"] == "builtins"
         assert count["type_info"]["builtin"] is True
@@ -86,34 +87,34 @@ class TestTypes:
     def test_float_type(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        pi = [a for a in actions if a["dest"] == "pi"][0]
+        pi = next(a for a in actions if a["dest"] == "pi")
         assert pi["type_info"]["name"] == "float"
 
     def test_boolean_flag(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        flag = [a for a in actions if a["dest"] == "flag"][0]
+        flag = next(a for a in actions if a["dest"] == "flag")
         assert flag["action_type"] == "boolean_optional"
         assert flag["default"] is True
 
     def test_is_flag_option(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        switch = [a for a in actions if a["dest"] == "switch"][0]
+        switch = next(a for a in actions if a["dest"] == "switch")
         assert switch["action_type"] == "store_true"
         assert switch["default"] is False
 
     def test_choice_type(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        color = [a for a in actions if a["dest"] == "color"][0]
+        color = next(a for a in actions if a["dest"] == "color")
         assert color["type_info"]["name"] == "choice"
         assert color["choices"] == ["red", "green", "blue"]
 
     def test_path_type(self, command_with_types):
         result = clickdump.dump(command_with_types)
         actions = result["actions"]
-        path = [a for a in actions if a["dest"] == "path"][0]
+        path = next(a for a in actions if a["dest"] == "path")
         assert path["type_info"]["name"] == "Path"
         assert path["type_info"]["module"] == "pathlib"
 
@@ -122,7 +123,7 @@ class TestEnvvar:
     def test_envvar_option(self, command_with_envvar):
         result = clickdump.dump(command_with_envvar)
         actions = result["actions"]
-        host = [a for a in actions if a["dest"] == "host"][0]
+        host = next(a for a in actions if a["dest"] == "host")
         assert host["envvar"] == "HOST"
 
 
@@ -159,7 +160,7 @@ class TestGroup:
     def test_subcommand_has_params(self, simple_group):
         result = clickdump.dump(simple_group)
         actions = result["actions"]
-        parsers = [a for a in actions if a["action_type"] == "parsers"][0]
+        parsers = next(a for a in actions if a["action_type"] == "parsers")
         build = parsers["subparsers"]["build"]
         assert build["prog"] == "build"
         assert build["description"] == "Build the project."
@@ -171,7 +172,7 @@ class TestGroup:
     def test_nested_group_subparsers(self, nested_group):
         result = clickdump.dump(nested_group)
         actions = result["actions"]
-        parsers = [a for a in actions if a["action_type"] == "parsers"][0]
+        parsers = next(a for a in actions if a["action_type"] == "parsers")
         assert "config" in parsers["subparsers"]
         config = parsers["subparsers"]["config"]
         config_actions = config["actions"]
@@ -339,54 +340,54 @@ class TestGroupFlags:
 class TestOptionFields:
     def test_prompt_true(self, command_prompt_true):
         result = clickdump.dump(command_prompt_true)
-        name_action = [a for a in result["actions"] if a["dest"] == "name"][0]
+        name_action = next(a for a in result["actions"] if a["dest"] == "name")
         assert name_action["prompt"] == "Name"
 
     def test_prompt_string(self, command_prompt_string):
         result = clickdump.dump(command_prompt_string)
-        name_action = [a for a in result["actions"] if a["dest"] == "name"][0]
+        name_action = next(a for a in result["actions"] if a["dest"] == "name")
         assert name_action["prompt"] == "Enter name: "
 
     def test_show_default(self, command_show_default):
         result = clickdump.dump(command_show_default)
-        output_action = [a for a in result["actions"] if a["dest"] == "output"][0]
+        output_action = next(a for a in result["actions"] if a["dest"] == "output")
         assert output_action["show_default"] is True
 
     def test_show_envvar(self, command_show_envvar):
         result = clickdump.dump(command_show_envvar)
-        host_action = [a for a in result["actions"] if a["dest"] == "host"][0]
+        host_action = next(a for a in result["actions"] if a["dest"] == "host")
         assert host_action["show_envvar"] is True
 
     def test_is_eager(self, command_is_eager):
         result = clickdump.dump(command_is_eager)
-        verbose_action = [a for a in result["actions"] if a["dest"] == "verbose"][0]
+        verbose_action = next(a for a in result["actions"] if a["dest"] == "verbose")
         assert verbose_action["is_eager"] is True
 
     def test_expose_value_false(self, command_expose_false):
         result = clickdump.dump(command_expose_false)
-        secret_action = [a for a in result["actions"] if a["dest"] == "secret"][0]
+        secret_action = next(a for a in result["actions"] if a["dest"] == "secret")
         assert secret_action["expose_value"] is False
 
     def test_required(self, command_required):
         result = clickdump.dump(command_required)
-        token_action = [a for a in result["actions"] if a["dest"] == "token"][0]
+        token_action = next(a for a in result["actions"] if a["dest"] == "token")
         assert token_action["required"] is True
 
     def test_metavar(self, command_metavar):
         result = clickdump.dump(command_metavar)
-        config_action = [a for a in result["actions"] if a["dest"] == "config"][0]
+        config_action = next(a for a in result["actions"] if a["dest"] == "config")
         assert config_action["metavar"] == "FILE"
 
     def test_envvar_list(self, command_envvar_list):
         result = clickdump.dump(command_envvar_list)
-        host_action = [a for a in result["actions"] if a["dest"] == "host"][0]
+        host_action = next(a for a in result["actions"] if a["dest"] == "host")
         assert host_action["envvar"] == ["HOST", "SERVER_HOST"]
 
 
 class TestCommandAliases:
     def test_aliases(self, group_with_aliases):
         result = clickdump.dump(group_with_aliases)
-        parsers = [a for a in result["actions"] if a["action_type"] == "parsers"][0]
+        parsers = next(a for a in result["actions"] if a["action_type"] == "parsers")
         assert "build" in parsers["subparsers"]
         assert "compile" not in parsers["subparsers"]
         assert parsers["subparsers_aliases"] == {"build": ["compile"]}
@@ -395,11 +396,11 @@ class TestCommandAliases:
 class TestHiddenSubcommand:
     def test_hidden_subcommand_omitted(self, group_with_hidden_subcommand):
         result = clickdump.dump(group_with_hidden_subcommand, include_hidden=False)
-        parsers = [a for a in result["actions"] if a["action_type"] == "parsers"][0]
+        parsers = next(a for a in result["actions"] if a["action_type"] == "parsers")
         assert "secret" not in parsers["subparsers"]
         assert "visible" in parsers["subparsers"]
 
     def test_hidden_subcommand_included_by_default(self, group_with_hidden_subcommand):
         result = clickdump.dump(group_with_hidden_subcommand)
-        parsers = [a for a in result["actions"] if a["action_type"] == "parsers"][0]
+        parsers = next(a for a in result["actions"] if a["action_type"] == "parsers")
         assert "secret" in parsers["subparsers"]
