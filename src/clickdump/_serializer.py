@@ -313,13 +313,10 @@ def _get_environment_info() -> dict[str, str]:
 
 
 def _extract_help_option_names(cmd: click.Command) -> None:
-    """Populate HELP_OPTION_NAMES if a context is available, otherwise use defaults."""
+    """Populate HELP_OPTION_NAMES with the command's actual help option names."""
     global _HELP_OPTION_NAMES
-    try:
-        ctx = click.Context(cmd)
-        _HELP_OPTION_NAMES = list(ctx.help_option_names)
-    except Exception:
-        pass
+    ctx = cmd.make_context(cmd.name or "", [], resilient_parsing=True)
+    _HELP_OPTION_NAMES = list(ctx.help_option_names)
 
 
 def _serialize(
