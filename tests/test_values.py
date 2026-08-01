@@ -12,7 +12,7 @@ from clickdump._values import serialize_value
 
 class Color(Enum):
     RED = "red"
-    GREEN = [1, 2]
+    GREEN = (1, 2)
 
 
 class TestPrimitives:
